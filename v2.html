@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkout</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+    background-image: url(My\ first\ design\ 2.png);
+  }
+  .container {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #06fc23;
+    background-image: url(Designer.png);
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    position: relative; /* Added for stacking order */
+  }
+  h1 {
+    text-align: center;
+    color: #333;
+  }
+  form {
+    margin-top: 20px;
+  }
+  .form-group {
+    margin-bottom: 20px;
+  }
+  label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  input[type="text"],
+  input[type="email"],
+  input[type="number"],
+  input[type="tel"] { /* Added input type for phone number */
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+  }
+  .total {
+    font-size: 18px;
+    font-weight: bold;
+    margin-top: 20px;
+  }
+  .products {
+    margin-top: 20px;
+  }
+  .back{
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+}
+  /* Added styles for the checkout button */
+  #checkout-button {
+    width: 100%;
+    padding: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    text-decoration: none; /* Removing underline from link */
+    display: block; /* Making it a block element */
+    text-align: center; /* Centering the text */
+  }
+  #checkout-button:hover {
+    background-color: #45a049;
+    background-image: url(Designer.png);
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <video autoplay loop muted class="back">
+    <source src="" type="video/mp4">
+  </video>
+  <h1>Checkout</h1>
+  <form id="checkout-form">
+    <div class="form-group">
+      <label for="name">Name:</label>
+      <input type="text" id="name" name="name" required>
+    </div>
+    <div class="form-group">
+      <label for="email">Email:</label>
+      <input type="email" id="email" name="email" required>
+    </div>
+    <div class="form-group">
+      <label for="address">Address:</label>
+      <input type="text" id="address" name="address" required>
+    </div>
+    <div class="form-group">
+      <label for="payment">Payment Details:</label>
+      <select id="payment"> <!-- Added id to select element -->
+        <option>cash</option>
+        <option>upi</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="number">Phone Number:</label> <!-- Corrected input type to "tel" -->
+      <input type="tel" id="number" name="number" required> <!-- Corrected input type to "tel" -->
+    </div>
+    <div class="total">
+      Total Amount: <span id="total-amount">0.00</span>
+    </div>
+    <div class="products">
+      <h3>Products:</h3>
+      <ul id="product-list"></ul>
+    </div>
+    <!-- Changed the button type to submit -->
+    <button type="submit" id="checkout-button">Checkout</button>
+    <!-- Added the anchor tag with href to v.html for redirection -->
+    <a id="redirect-link" href="v.html" style="display: none;"></a>
+  </form>
+</div>
+
+<script>
+  const checkoutForm = document.getElementById('checkout-form');
+  const totalAmountElement = document.getElementById('total-amount');
+  const productList = document.getElementById('product-list');
+  const redirectLink = document.getElementById('redirect-link');
+
+  function getQueryVariable(variable) {
+    const query = window.location.search.substring(1);
+    const vars = query.split('&');
+    for (let i = 0; i < vars.length; i++) {
+      const pair = vars[i].split('=');
+      if (decodeURIComponent(pair[0]) === variable) {
+        return decodeURIComponent(pair[1]);
+      }
+    }
+    return null;
+  }
+
+  const cartData = getQueryVariable('cart');
+  if (cartData) {
+    const cart = JSON.parse(decodeURIComponent(cartData));
+    let totalAmount = 0;
+    cart.forEach(item => {
+      const listItem = document.createElement('li');
+      listItem.textContent = `${item.name} - Quantity: ${item.quantity} - Total: ₹${(item.price * item.quantity).toFixed(2)}`;
+      productList.appendChild(listItem);
+      totalAmount += item.price * item.quantity;
+    });
+    totalAmountElement.textContent = `₹${totalAmount.toFixed(2)}`;
+  } else {
+    alert('No cart data found!');
+  }
+
+  checkoutForm.addEventListener('submit', function(event) {
+    event.preventDefault();
+
+    // Get form data
+    const formData = new FormData(checkoutForm);
+
+    // Convert form data to JSON
+    const jsonData = {};
+    formData.forEach((value, key) => {
+      jsonData[key] = value;
+    });
+
+    // Include payment details
+    jsonData['payment'] = document.getElementById('payment').value;
+
+    // Include product details
+    const products = [];
+    const productItems = document.querySelectorAll('#product-list li');
+    productItems.forEach(item => {
+      const productInfo = item.textContent.split(' - ');
+      const productName = productInfo[0];
+      const quantity = productInfo[1].split(': ')[1];
+      const total = productInfo[2].split(': ')[1];
+      products.push({ name: productName, quantity: quantity, total: total });
+    });
+    jsonData['products'] = products;
+
+    const jsonString = JSON.stringify(jsonData);
+
+    // Create a Blob containing the JSON data
+    const blob = new Blob([jsonString], { type: "application/json" });
+
+    // Create a temporary anchor element to trigger download
+    const a = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    a.href = url;
+    a.download = "order_details.json";
+
+    // Trigger download
+    document.body.appendChild(a);
+    a.click();
+
+    // Cleanup
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 0);
+
+    // Redirect to v.html after download
+    redirectLink.click();
+  });
+</script>
+
+</body>
+</html>
